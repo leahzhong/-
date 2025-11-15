@@ -246,25 +246,31 @@ function checkCollision(head) {
 
 // 绘制游戏画面
 function draw() {
-    // 清空画布
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    // 绘制草坪背景
+    for (let i = 0; i < GRID_COUNT; i++) {
+        for (let j = 0; j < GRID_COUNT; j++) {
+            // 棋盘格效果的草坪
+            if ((i + j) % 2 === 0) {
+                ctx.fillStyle = '#7EC850'; // 浅绿色草坪
+            } else {
+                ctx.fillStyle = '#72B946'; // 深绿色草坪
+            }
+            ctx.fillRect(i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+        }
+    }
 
-    // 绘制网格(淡淡的背景线)
-    ctx.strokeStyle = '#e8e8e8';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID_COUNT; i++) {
-        // 垂直线
-        ctx.beginPath();
-        ctx.moveTo(i * GRID_SIZE, 0);
-        ctx.lineTo(i * GRID_SIZE, CANVAS_SIZE);
-        ctx.stroke();
-
-        // 水平线
-        ctx.beginPath();
-        ctx.moveTo(0, i * GRID_SIZE);
-        ctx.lineTo(CANVAS_SIZE, i * GRID_SIZE);
-        ctx.stroke();
+    // 添加草坪纹理效果（随机小草点）
+    ctx.fillStyle = 'rgba(100, 150, 60, 0.3)';
+    for (let i = 0; i < GRID_COUNT; i++) {
+        for (let j = 0; j < GRID_COUNT; j++) {
+            // 每个格子随机画几个小点模拟草
+            const grassCount = 3;
+            for (let k = 0; k < grassCount; k++) {
+                const x = i * GRID_SIZE + Math.random() * GRID_SIZE;
+                const y = j * GRID_SIZE + Math.random() * GRID_SIZE;
+                ctx.fillRect(x, y, 1, 2);
+            }
+        }
     }
 
     // 绘制蛇
@@ -280,19 +286,76 @@ function draw() {
             gradient.addColorStop(0, '#FFD700');
             gradient.addColorStop(1, '#FFA500');
             ctx.fillStyle = gradient;
+
+            // 绘制蛇头圆角矩形
+            drawRoundRect(
+                segment.x * GRID_SIZE + 1,
+                segment.y * GRID_SIZE + 1,
+                GRID_SIZE - 2,
+                GRID_SIZE - 2,
+                6
+            );
+
+            // 绘制卡通眼睛和表情
+            const headCenterX = segment.x * GRID_SIZE + GRID_SIZE / 2;
+            const headCenterY = segment.y * GRID_SIZE + GRID_SIZE / 2;
+
+            // 根据移动方向调整眼睛位置
+            let eyeOffsetX = 0;
+            let eyeOffsetY = -3;
+
+            if (direction === DIRECTION.LEFT) {
+                eyeOffsetX = -3;
+                eyeOffsetY = 0;
+            } else if (direction === DIRECTION.RIGHT) {
+                eyeOffsetX = 3;
+                eyeOffsetY = 0;
+            } else if (direction === DIRECTION.DOWN) {
+                eyeOffsetY = 3;
+            }
+
+            // 绘制两只眼睛（白色底）
+            ctx.fillStyle = '#FFFFFF';
+            // 左眼
+            ctx.beginPath();
+            ctx.arc(headCenterX - 4 + eyeOffsetX, headCenterY - 2 + eyeOffsetY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            // 右眼
+            ctx.beginPath();
+            ctx.arc(headCenterX + 4 + eyeOffsetX, headCenterY - 2 + eyeOffsetY, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 绘制眼珠（黑色）
+            ctx.fillStyle = '#000000';
+            // 左眼珠
+            ctx.beginPath();
+            ctx.arc(headCenterX - 4 + eyeOffsetX + 1, headCenterY - 2 + eyeOffsetY, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            // 右眼珠
+            ctx.beginPath();
+            ctx.arc(headCenterX + 4 + eyeOffsetX + 1, headCenterY - 2 + eyeOffsetY, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 绘制微笑嘴巴
+            ctx.strokeStyle = '#8B4513';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(headCenterX + eyeOffsetX, headCenterY + 3 + eyeOffsetY, 3, 0.2 * Math.PI, 0.8 * Math.PI);
+            ctx.stroke();
+
         } else {
             // 蛇身 - 纯色
             ctx.fillStyle = '#FFA500';
-        }
 
-        // 绘制圆角矩形
-        drawRoundRect(
-            segment.x * GRID_SIZE + 1,
-            segment.y * GRID_SIZE + 1,
-            GRID_SIZE - 2,
-            GRID_SIZE - 2,
-            4
-        );
+            // 绘制圆角矩形
+            drawRoundRect(
+                segment.x * GRID_SIZE + 1,
+                segment.y * GRID_SIZE + 1,
+                GRID_SIZE - 2,
+                GRID_SIZE - 2,
+                4
+            );
+        }
     });
 
     // 绘制食物(绿色苹果)
