@@ -21,6 +21,10 @@ let score = 0; // 当前分数
 let bestScore = 0; // 最高分
 let gameLoop = null; // 游戏循环定时器
 let isGameRunning = false; // 游戏是否运行中
+let particles = []; // 粒子效果数组
+
+// 音效系统
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 // DOM元素
 const canvas = document.getElementById('gameCanvas');
@@ -32,6 +36,97 @@ const gameOverScreen = document.getElementById('gameOver');
 const startScreen = document.getElementById('startScreen');
 const restartBtn = document.getElementById('restartBtn');
 const startBtn = document.getElementById('startBtn');
+
+// 音效函数 - 吃到食物
+function playEatSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+// 音效函数 - 撞墙失败
+function playGameOverSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.5);
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+// 粒子类
+class Particle {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 4;
+        this.vy = (Math.random() - 0.5) * 4;
+        this.life = 1.0;
+        this.size = Math.random() * 4 + 2;
+        this.color = ['#FFD700', '#FFA500', '#4CAF50', '#81C784'][Math.floor(Math.random() * 4)];
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1; // 重力效果
+        this.life -= 0.02;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    isDead() {
+        return this.life <= 0;
+    }
+}
+
+// 创建粒子效果
+function createParticles(x, y, count = 15) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y));
+    }
+}
+
+// 更新粒子
+function updateParticles() {
+    particles = particles.filter(particle => {
+        particle.update();
+        return !particle.isDead();
+    });
+}
+
+// 绘制粒子
+function drawParticles() {
+    particles.forEach(particle => particle.draw(ctx));
+}
 
 // 初始化游戏
 function initGame() {
@@ -45,6 +140,7 @@ function initGame() {
     direction = DIRECTION.RIGHT;
     nextDirection = DIRECTION.RIGHT;
     score = 0;
+    particles = []; // 清空粒子
 
     // 加载最高分
     loadBestScore();
@@ -107,12 +203,24 @@ function gameStep() {
     if (head.x === food.x && head.y === food.y) {
         score++;
         updateScore();
+
+        // 播放吃到食物的音效
+        playEatSound();
+
+        // 创建粒子特效
+        const particleX = food.x * GRID_SIZE + GRID_SIZE / 2;
+        const particleY = food.y * GRID_SIZE + GRID_SIZE / 2;
+        createParticles(particleX, particleY, 20);
+
         generateFood();
         // 吃到食物不移除尾巴,蛇变长
     } else {
         // 没吃到食物,移除尾巴
         snake.pop();
     }
+
+    // 更新粒子
+    updateParticles();
 
     // 绘制游戏画面
     draw();
@@ -247,6 +355,9 @@ function draw() {
         Math.PI * 2
     );
     ctx.fill();
+
+    // 绘制粒子特效
+    drawParticles();
 }
 
 // 绘制圆角矩形辅助函数
@@ -306,6 +417,10 @@ function startGame() {
 function gameOver() {
     isGameRunning = false;
     clearInterval(gameLoop);
+
+    // 播放游戏结束音效
+    playGameOverSound();
+
     finalScoreElement.textContent = score;
     gameOverScreen.classList.add('show');
 }
